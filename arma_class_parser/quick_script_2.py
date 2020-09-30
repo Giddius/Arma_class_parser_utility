@@ -1,9 +1,5 @@
-import subprocess
+from gidtools.gidfiles import get_pickled, writejson
 
-import os
 
-converter = '"C:/Program Files (x86)/Steam/steamapps/common/Arma 3 Tools/TexView2/Pal2PacE.exe"'
-
-subprocess.run(converter + " P:/a3/characters_f/BLUFOR/Data/armor1_co.paa " + os.path.join(os.getcwd(), 'test.png'), check=False, shell=True)
-
-# os.remove(os.path.join(os.getcwd(), 'test.png'))
+a = get_pickled("D:/Dropbox/hobby/Modding/Programs/Github/My_Repos/Arma_class_parser_utility/arma_class_parser/all_config_dump_rhs_ace_3cb.pkl")
+writejson(a, 'all_config_dump_rhs_ace_3cb.json')

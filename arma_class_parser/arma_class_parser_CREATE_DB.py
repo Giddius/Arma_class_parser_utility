@@ -5,8 +5,12 @@ import time
 import sys
 import timeit
 import statistics
-
+from pprint import pprint, pformat
+import subprocess
 from functools import partial
+from gidtools.gidfiles.classes import QuickFile
+from gidtools.gidfiles.functions import writejson
+from gidtools.gidfiles import ext_splitter, splitoff, pathmaker
 # *GID Imports -->
 
 from gidtools.gidtriumvirate import GidSQLBuilder
@@ -18,16 +22,14 @@ import gidlogger as glog
 # * Local Imports -->
 from arma_class_parser_classes import DictHandler, MasterSorterHolder
 from arma_class_parser_DATA import ALL_CFG_SECTIONS
-from arma_class_parser_misc import ACPImageFinder
+from arma_class_parser_misc import ACPImageFinder, FileIndexer
 
 # endregion [Imports]
 
-__updated__ = '2020-08-14 20:03:37'
+__updated__ = '2020-09-05 22:38:48'
 
-# region [Localized_Imports]
+
 n_round = partial(round, ndigits=2)
-
-# endregion [Localized_Imports]
 
 
 # region [Logging]
@@ -64,23 +66,38 @@ def transform_time(in_t0, in_t1):
 
 
 # region [Class_1]
-
+def transform_paa(full_path):
+    _out_path = "D:/Dropbox/hobby/Modding/Programs/Github/My_Repos/Arma_class_parser_utility/arma_class_parser/ressources/paa_conversions"
+    _old = full_path
+    _dir, _file = splitoff(full_path)
+    _basefile = ext_splitter(_file)
+    _new = pathmaker(_out_path, _basefile + '.png')
+    _command = r'"C:\Program Files (x86)\Steam\steamapps\common\Arma 3 Tools\ImageToPAA\ImageToPAA.exe"' + ' ' + _old + ' ' + _new
+    _cmd = subprocess.run(_command, check=False, shell=True, capture_output=True)
+    log.debug(pformat(_cmd.stdout))
 
 # endregion [Class_1]
 
 # region [DB_Creation]
+
+
 def create_db():
+    indexer = FileIndexer(['c:/', 'd:/'])
+    _out = QuickFile()
+    _out.write(indexer.paths, pretty=True)
     t0 = time.time()
     cfg_content = DictHandler()
-    DB = GidSQLBuilder.get_databaser()
+    DBbuilder = GidSQLBuilder()
+    DB = DBbuilder.database
     DB.start_db()
     # DB.executor.enable_row_factory()
     maincheese = MasterSorterHolder(cfg_content)
 
     for sections in ALL_CFG_SECTIONS:
-        _tabler = maincheese.get_new_tabler(sections)
-        _tabler.to_db(DB)
-        # _image = ACPImageFinder(sections, DB)
+        if sections in ALL_CFG_SECTIONS:
+            print("working on " + sections)
+            _tabler = maincheese.get_new_tabler(sections)
+            _tabler.to_db(DB)
 
     DB.executor.vacuum()
     DB.executor.vacuum()
@@ -93,62 +110,6 @@ def create_db():
 # region [Main_Exec]
 
 if __name__ == '__main__':
-    try:
-        TT = timeit.Timer(create_db)
-        _comb = []
-        _1 = n_round(TT.timeit(number=1))
-
-        _comb.append(_1)
-        _2 = n_round(TT.timeit(number=1))
-
-        _comb.append(_2)
-        _3 = n_round(TT.timeit(number=1))
-
-        _comb.append(_3)
-        _4 = n_round(TT.timeit(number=1))
-
-        _comb.append(_4)
-        _5 = n_round(TT.timeit(number=1))
-        _comb.append(_5)
-
-        _6 = n_round(TT.timeit(number=1))
-        _comb.append(_6)
-
-        _7 = n_round(TT.timeit(number=1))
-        _comb.append(_7)
-
-        _8 = n_round(TT.timeit(number=1))
-        _comb.append(_8)
-
-        _9 = n_round(TT.timeit(number=1))
-        _comb.append(_9)
-
-        _10 = n_round(TT.timeit(number=1))
-        _comb.append(_10)
-
-        with open('time_results.txt', 'w') as resultfile:
-            resultfile.write('from_list results:\n\n')
-            resultfile.write(f"        {_comb[0]}\n")
-            resultfile.write(f"        {_comb[1]}\n")
-            resultfile.write(f"        {_comb[2]}\n")
-            resultfile.write(f"        {_comb[3]}\n")
-            resultfile.write(f"        {_comb[4]}\n")
-            resultfile.write(f"        {_comb[5]}\n")
-            resultfile.write(f"        {_comb[6]}\n")
-            resultfile.write(f"        {_comb[7]}\n")
-            resultfile.write(f"        {_comb[8]}\n")
-            resultfile.write(f"        {_comb[9]}\n")
-            resultfile.write('-------------------------------\n\n')
-            resultfile.write(f"lowest = {min(_comb)}\n")
-            resultfile.write(f"mean = {round(statistics.mean(_comb),3)}\n")
-            resultfile.write(f"median = {round(statistics.median(_comb),3)}\n")
-            resultfile.write(f"std_dev = {round(statistics.stdev(_comb),3)}\n")
-            resultfile.write(f"variance = {round(statistics.variance(_comb),5)}\n")
-            resultfile.write(f"mode = {round(statistics.mode(_comb),3)}\n")
-            resultfile.write(f"median_grouped = {round(statistics.median_grouped(_comb),3)}\n")
-            resultfile.write('###############################\n\n\n')
-    except:
-        log.exception(sys.exc_info()[0])
-        raise
+    create_db()
 
 # endregion [Main_Exec]

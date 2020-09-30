@@ -17,9 +17,10 @@ from PyQt5.QtWidgets import QCompleter
 from ui_Arma_class_parser_maininterface import Ui_Arma_Class_parser_maingui
 from arma_class_parser_DATA import ALL_CFG_SECTIONS, TYPE_DICTS
 from arma_class_parser_classes import ACPTableViewModel, DictHandler
+
 # endregion [Imports]
 
-__updated__ = '2020-08-12 11:04:39'
+__updated__ = '2020-09-06 15:59:25'
 
 
 # region [Logging]
@@ -50,7 +51,7 @@ class ArmaClassParserMainWindow(Ui_Arma_Class_parser_maingui):
         super().setupUi(mainwindow)
         self.dict_handler = DictHandler()
         self.content, self.parsed_content, self.parsed_as_benedict = self.dict_handler()
-        self.db = GidSQLBuilder.get_databaser()
+        self.db = GidSQLBuilder.get_database()
         self.tablemodel = ACPTableViewModel(self.db)
         self.autocomplete_BG = buttongroup_factory(self.use_classnames_radioButton, self.use_displaynames_radioButton)
         self.tabWidget.setCurrentIndex(0)
@@ -110,6 +111,7 @@ class ArmaClassParserMainWindow(Ui_Arma_Class_parser_maingui):
         self.fill_table()
 
     def fill_table(self):
+        self.search_comboinput_comboBox.setCurrentText('ALL')
         self.only_with_images_checkBox.setChecked(False)
         self.tablemodel.layoutAboutToBeChanged.emit()
         self.tablemodel.set_table(self.cfg_selection_search_comboBox.currentText().casefold())

@@ -1,7 +1,7 @@
 # region [Imports]
 
 # *NORMAL Imports -->
-from pprint import pformat
+from pprint import pformat, pprint
 import os
 import shutil
 import time
@@ -18,7 +18,7 @@ import gidlogger as glog
 
 # endregion [Imports]
 
-__updated__ = '2020-08-14 17:34:28'
+__updated__ = '2020-08-28 01:55:02'
 
 # region [Logging]
 
@@ -308,6 +308,21 @@ class ACPMarkDownPrinter:
 
 # region [Class_4]
 
+class FileIndexer:
+    def __init__(self, drives):
+        self.drives = drives
+        self.paths = {'paa': [], 'jpg': []}
+        self.find_paths()
+
+    def find_paths(self):
+        for _drive in self.drives:
+            for dirname, _, filelist in os.walk(_drive):
+                for _file in filelist:
+                    if _file.endswith('.paa'):
+                        self.paths['paa'].append(pathmaker(dirname, _file))
+                    elif _file.endswith('.jpg'):
+                        self.paths['jpg'].append(pathmaker(dirname, _file))
+
 
 # endregion [Class_4]
 
@@ -315,18 +330,18 @@ class ACPMarkDownPrinter:
 # region [Class_5]
 
 class ACPImageFinder:
-    def __init__(self, section, in_db):
+    def __init__(self, section, in_db, indexer):
         self.db = in_db
+        self.indexer = indexer
         self.section = section
         self.table = f"{self.section}_items_tbl"
         self.orig_path_dict = self.query_paths()
         self.paa_to_png_loc = ''
-        self.locations = self.get_locations()
-        create_folder(pathmaker('cwd', 'ressources', 'temp'))
-        self.temp_loc = pathmaker('cwd', 'ressources', 'temp')
+        self.locations = {}
+        create_folder(pathmaker('cwd', 'ressources', 'paa_conversions'))
+        self.paa_conversion_folder = pathmaker('cwd', 'ressources', 'paa_conversions')
         self.final_path_dict = {}
-        self.process_images()
-        self.to_db()
+        self.find_locations()
 
     def query_paths(self):
         log.info('starting image query')
@@ -336,140 +351,73 @@ class ACPImageFinder:
         _results = self.db.executor(_phrase)
         for row in _results:
             if row[1] != 'none' and row[1] != '' and row[1] is not None:
-                _out_dict[row[0]] = row[1]
+                _out_dict[row[0]] = pathmaker(row[1])
         return _out_dict
 
-    def get_locations(self):
-        _out_dict = {}
-        _cfg = configparser.ConfigParser()
-        _cfg.read("config/user_config.ini")
-        for key in _cfg.options('locations'):
-            _out_dict[key] = pathmaker(_cfg.get('locations', key))
-        self.paa_to_png_loc = pathmaker(_cfg.get('apps', 'pal2pace'))
-        return _out_dict
-
-    def process_images(self):
-        _list = []
-        for classname, image_path in self.orig_path_dict.items():
-            image_path = image_path.replace('\\', '/').lstrip('/')
-            _full_path = ''
-            if image_path.split('/')[0].casefold() == 'a3':
-                _full_path = pathmaker(self.locations['p_drive'], image_path)
-                log.debug(f" full path found for '{classname}' in '{_full_path}'")
-            else:
-                for folder in os.listdir(pathmaker(self.locations['user_mods'])):
-                    if '.' not in folder:
-                        if image_path.split('/')[0].casefold() == folder:
-                            _full_path = pathmaker(self.locations['user_mods'], image_path)
-                            log.debug(f" full path found for '{classname}' in '{_full_path}'")
-                            break
-                        for subfolder in os.listdir(pathmaker(self.locations['user_mods'], folder)):
-                            if image_path.split('/')[0].casefold() == subfolder:
-                                _full_path = pathmaker(self.locations['user_mods'], folder, image_path)
-                                log.debug(f" full path found for '{classname}' in '{_full_path}'")
-                                break
-
-            if _full_path != '':
-                if ext_splitter(_full_path, _out='ext').casefold() == 'jpg':
-                    self.final_path_dict[classname] = pathmaker(_full_path)
-                elif ext_splitter(_full_path, _out='ext').casefold() == 'paa':
-                    _new_path = pathmaker(_full_path.split('.')[0] + '.png')
-                    if _new_path not in set(_list):
-                        _cmd_object = subprocess.run([self.paa_to_png_loc, _full_path, _new_path], check=False, shell=False, capture_output=True)
-                        if 'error' in str(_cmd_object.stdout).casefold():
-                            log.critical('paa2png output: ' + str(_cmd_object.stdout))
-                        else:
-                            log.debug('paa2png output: ' + str(_cmd_object.stdout))
-                        _list.append(_new_path)
-                    self.final_path_dict[classname] = _new_path
-            else:
-                log.debug(f" NO full path found for '{classname}' with original path '{image_path}'")
-
-    def to_db(self):
-        _phrase_list = []
-        for classname, new_path in self.final_path_dict.items():
-            _classname = classname.casefold()
-            _phrase = f'UPDATE "{self.table}" SET "item_preview" = "{new_path}" WHERE LOWER("item_classname") = "{_classname}"'
-            _phrase_list.append(_phrase)
-        self.db.executor(';'.join(_phrase_list), is_script=True)
+    def find_locations(self):
+        for key, value in self.orig_path_dict.items():
+            if '.paa' in value:
+                for _path in self.indexer.paths.get('paa'):
+                    if value.casefold() in _path.casefold():
+                        self.locations[key] = (value, _path)
+                        continue
+            elif '.jpg' in value:
+                for _path in self.indexer.paths.get('jpg'):
+                    if value.casefold() in _path.casefold():
+                        self.locations[key] = (value, _path)
+                        continue
 
 # endregion [Class_5]
 
-
 # region [Class_6]
-
 
 # endregion [Class_6]
 
-
 # region [Class_7]
-
 
 # endregion [Class_7]
 
-
 # region [Class_8]
-
 
 # endregion [Class_8]
 
-
 # region [Class_9]
-
 
 # endregion [Class_9]
 
-
 # region [Model_1]
-
 
 # endregion [Model_1]
 
-
 # region [Model_2]
-
 
 # endregion [Model_2]
 
-
 # region [Model_3]
-
 
 # endregion [Model_3]
 
-
 # region [Model_4]
-
 
 # endregion [Model_4]
 
-
 # region [Model_5]
-
 
 # endregion [Model_5]
 
-
 # region [Model_6]
-
 
 # endregion [Model_6]
 
-
 # region [Model_7]
-
 
 # endregion [Model_7]
 
-
 # region [Model_8]
-
 
 # endregion [Model_8]
 
-
 # region [Model_9]
-
 
 # endregion [Model_9]
 
