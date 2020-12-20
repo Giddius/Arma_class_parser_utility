@@ -1,7 +1,0 @@
-<RCC>
-  <qresource prefix="icons">
-    <file>ressources/icons/Antistasi_flag_experiment.ico</file>
-    <file>ressources/icons/cog_icon.ico</file>
-    <file>ressources/icons/gid_logo_temp.ico</file>
-  </qresource>
-</RCC>

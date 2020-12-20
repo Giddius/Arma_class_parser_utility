@@ -1,0 +1,7 @@
+graft arma_class_parser
+prune arma_class_parser/logs
+prune temp
+prune misc
+prune arma_class_parser/reports
+exclude .env
+exclude .db
